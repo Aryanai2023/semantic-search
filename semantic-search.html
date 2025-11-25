@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Semantic Search — from keywords to meaning</title>
+
+  <!-- Reveal.js core + theme -->
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@5.2.1/dist/theme/black.css" id="theme">
+
+  <!-- Code highlighting -->
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <style>
+    :root { --accent: #7dd3fc; }
+    .reveal .slides { text-align: left; }
+    .reveal h1, .reveal h2, .reveal h3 { letter-spacing: -0.02em; }
+    .reveal .muted { opacity: .75; }
+    .reveal .accent { color: var(--accent); }
+    .reveal .pill {
+      display:inline-block; padding:.2rem .55rem; border:1px solid rgba(255,255,255,.18);
+      border-radius: 999px; font-size: .7em; margin-right: .35rem;
+      background: rgba(255,255,255,.06);
+    }
+    .reveal .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+    .reveal .card {
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+    }
+    .reveal .kpi { font-size: 2.1rem; font-weight: 800; }
+    .reveal ul { margin: .5rem 0 0 1.1rem; }
+    .reveal li { margin: .35rem 0; }
+    .diagram {
+      display:grid; gap:.6rem;
+      grid-template-columns: repeat(3, 1fr);
+      align-items: stretch;
+    }
+    .box {
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      border-radius: 14px;
+      padding: .8rem;
+      min-height: 88px;
+    }
+    .box b { display:block; margin-bottom:.25rem; }
+    .arrow {
+      text-align:center; font-size: 1.4rem; opacity: .8;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .reveal code { font-size: .9em; }
+    .footer {
+      position: fixed; left: 18px; bottom: 14px; font-size: 12px; opacity: .65;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <section>
+      <h1>Semantic Search</h1>
+      <h3 class="muted">From keywords → <span class="accent">meaning</span> (and why it changes everything)</h3>
+      <p style="margin-top:1.2rem">
+        <span class="pill">Embeddings</span>
+        <span class="pill">Vector DB</span>
+        <span class="pill">Hybrid Search</span>
+        <span class="pill">RAG</span>
+        <span class="pill">Evaluation</span>
+      </p>
+      <aside class="notes">
+        Quick framing: “Search is a product, not a feature.” Semantic search reduces ‘I can’t find it’ pain.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Why search feels broken</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Users type</h3>
+          <ul>
+            <li>“startup doing batteries without lithium”</li>
+            <li>“who makes chips for edge AI cameras”</li>
+            <li>“paper about quantum reservoir computing finance”</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>But docs contain</h3>
+          <ul>
+            <li>synonyms (“sodium-ion”, “anode chemistry”)</li>
+            <li>jargon (“neuromorphic”, “on-device inference”)</li>
+            <li>misspellings, acronyms, different wording</li>
+          </ul>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:1rem">Keyword search matches <b>tokens</b>. Semantic search matches <b>intent</b>.</p>
+      <aside class="notes">
+        Give one personal example: “You know it’s in the PDF somewhere but you can’t find the phrasing.”
+      </aside>
+    </section>
+
+    <section>
+      <h2>Keyword vs Semantic (in one picture)</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Keyword (lexical)</h3>
+          <ul>
+            <li>Exact words matter</li>
+            <li>Great for identifiers: SKUs, error codes</li>
+            <li>Fails on synonyms + paraphrases</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Semantic (vector)</h3>
+          <ul>
+            <li>Meaning matters</li>
+            <li>Great for “similar to this” queries</li>
+            <li>Needs evaluation + guardrails</li>
+          </ul>
+        </div>
+      </div>
+      <aside class="notes">
+        Emphasise: this is not either/or — most production systems are hybrid.
+      </aside>
+    </section>
+
+    <section>
+      <h2>The core idea: embeddings</h2>
+      <div class="card">
+        <p>
+          An <b>embedding</b> turns text into a numeric vector so that “similar meaning” ends up “close together”.
+        </p>
+        <div class="grid2" style="margin-top:.8rem">
+          <div>
+            <p class="muted" style="margin:.2rem 0"><b>Close in vector space</b> ⇒ similar concept</p>
+            <ul>
+              <li>“fundraising round” ≈ “Series A”</li>
+              <li>“speech synthesis” ≈ “TTS”</li>
+              <li>“drug candidate” ≈ “lead compound”</li>
+            </ul>
+          </div>
+          <div>
+            <p class="muted" style="margin:.2rem 0"><b>Far apart</b> ⇒ different concept</p>
+            <ul>
+              <li>“router BGP” vs “cake recipe”</li>
+              <li>“invoice reconciliation” vs “gym routine”</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <aside class="notes">
+        Keep it accessible: “It’s like a GPS coordinate for meaning.”
+      </aside>
+    </section>
+
+    <section>
+      <h2>Pipeline: end-to-end semantic search</h2>
+      <div class="diagram">
+        <div class="box"><b>1) Ingest</b> PDFs, docs, notes, web pages</div>
+        <div class="arrow">→</div>
+        <div class="box"><b>2) Chunk</b> split into passages + metadata</div>
+
+        <div class="box"><b>3) Embed</b> vector per chunk</div>
+        <div class="arrow">→</div>
+        <div class="box"><b>4) Index</b> store in vector DB</div>
+
+        <div class="box"><b>5) Query</b> embed user question</div>
+        <div class="arrow">→</div>
+        <div class="box"><b>6) Rank</b> nearest neighbours + filters</div>
+      </div>
+      <p class="muted" style="margin-top:.8rem">
+        Add-on: <b class="accent">RAG</b> uses the top passages as context to generate an answer.
+      </p>
+      <aside class="notes">
+        Mention metadata filters: date, source, sector, geography, author, confidence.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Chunking: the underrated superpower</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Bad chunking</h3>
+          <ul>
+            <li>too big: irrelevant noise</li>
+            <li>too small: missing context</li>
+            <li>no overlap: broken sentences</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Good chunking</h3>
+          <ul>
+            <li>passage-sized: 150–400 tokens often works</li>
+            <li>overlap: keeps continuity</li>
+            <li>metadata: title, section, URL, date, tags</li>
+          </ul>
+        </div>
+      </div>
+      <aside class="notes">
+        Audience takeaway: most “semantic search is bad” complaints are actually chunking + evaluation.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Vector databases (what they actually do)</h2>
+      <div class="card">
+        <ul>
+          <li>Store: <b>vector</b> + <b>text chunk</b> + <b>metadata</b></li>
+          <li>Search: fast “nearest neighbour” lookup (approximate kNN)</li>
+          <li>Filter: only search within “UK”, “FinTech”, “2024+”, “Pitch deck”</li>
+          <li>Return: top-k chunks + similarity scores</li>
+        </ul>
+        <p class="muted" style="margin-top:.8rem">
+          In practice: choose based on scale, latency, cost, and ops simplicity.
+        </p>
+      </div>
+      <aside class="notes">
+        Optional examples: FAISS (local), pgvector (Postgres), managed vector DBs.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Hybrid search: best of both worlds</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Lexical helps when…</h3>
+          <ul>
+            <li>exact names: “ASML”, “AWS”, “BGP”</li>
+            <li>numbers / IDs: “error 0x800”</li>
+            <li>rare entities + spelling matters</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Semantic helps when…</h3>
+          <ul>
+            <li>synonyms & paraphrases</li>
+            <li>concept search (“similar startups”)</li>
+            <li>messy notes / OCR text</li>
+          </ul>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:1rem">
+        Production pattern: <b>hybrid retrieval</b> → <b>rerank</b> → (optional) <b>answer</b>.
+      </p>
+      <aside class="notes">
+        Mention rerankers: cross-encoders / LLM reranking improves quality a lot.
+      </aside>
+    </section>
+
+    <section>
+      <h2>RAG: “Search + Answer” (without hallucinating… too much)</h2>
+      <div class="card">
+        <ol>
+          <li><b>Retrieve</b> top chunks</li>
+          <li><b>Ground</b> the model using those chunks</li>
+          <li><b>Generate</b> an answer with citations</li>
+        </ol>
+        <p style="margin-top:.8rem">
+          Guardrails:
+          <span class="pill">cite sources</span>
+          <span class="pill">abstain if missing</span>
+          <span class="pill">quote exact lines</span>
+          <span class="pill">show confidence</span>
+        </p>
+      </div>
+      <aside class="notes">
+        Use the phrase: “RAG is a reliability strategy, not a magic wand.”
+      </aside>
+    </section>
+
+    <section>
+      <h2>Minimal Python (embeddings + FAISS)</h2>
+      <pre><code class="language-python">
+# pip install sentence-transformers faiss-cpu
+from sentence_transformers import SentenceTransformer
+import faiss, numpy as np
+
+docs = ["Sodium-ion batteries are cheaper than lithium-ion...",
+        "Edge AI cameras run inference on-device to reduce latency...",
+        "Quantum reservoir computing can model time series..."]
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+X = model.encode(docs, normalize_embeddings=True)
+
+index = faiss.IndexFlatIP(X.shape[1])   # cosine similarity via inner product
+index.add(np.array(X, dtype="float32"))
+
+q = "batteries without lithium"
+qv = model.encode([q], normalize_embeddings=True).astype("float32")
+scores, ids = index.search(qv, k=2)
+
+print([(docs[i], float(scores[0][j])) for j,i in enumerate(ids[0])])
+      </code></pre>
+      <aside class="notes">
+        Explain: normalise embeddings → inner product behaves like cosine similarity.
+      </aside>
+    </section>
+
+    <section>
+      <h2>How do we know it’s “good”?</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Offline evaluation</h3>
+          <ul>
+            <li>Create <b>query → relevant docs</b> pairs</li>
+            <li>Metrics: <b>Recall@k</b>, <b>MRR</b>, <b>NDCG</b></li>
+            <li>Track quality per source + topic</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Online evaluation</h3>
+          <ul>
+            <li>A/B test ranking changes</li>
+            <li>Measure: click-through, time-to-answer, “found it” rate</li>
+            <li>Collect “bad results” feedback loop</li>
+          </ul>
+        </div>
+      </div>
+      <aside class="notes">
+        Key line: “If you can’t measure search quality, you can’t improve it.”
+      </aside>
+    </section>
+
+    <section>
+      <h2>Common failure modes (and fixes)</h2>
+      <div class="card">
+        <ul>
+          <li><b>Feels random</b> → improve chunking, add reranking, add filters</li>
+          <li><b>Misses obvious results</b> → hybrid search, better metadata, synonyms</li>
+          <li><b>Hallucinated answers</b> → enforce citations, abstain policy, smaller context</li>
+          <li><b>Costs too much</b> → cache embeddings, batch ingest, compress vectors</li>
+          <li><b>Privacy concerns</b> → on-prem embeddings, encrypt at rest, access control</li>
+        </ul>
+      </div>
+      <aside class="notes">
+        Useful line: “Most ‘LLM issues’ are actually retrieval issues.”
+      </aside>
+    </section>
+
+    <section>
+      <h2>Use case example: VC / deal sourcing</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Inputs</h3>
+          <ul>
+            <li>Pitch decks + intros</li>
+            <li>Crunchbase-style summaries</li>
+            <li>Tech news + papers</li>
+            <li>Partner notes</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Queries</h3>
+          <ul>
+            <li>“battery recycling EU regulation tailwinds”</li>
+            <li>“AI chips for embedded vision, seed stage”</li>
+            <li>“biotech platform similar to X, but cheaper”</li>
+          </ul>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:1rem">
+        Output: ranked companies + “why it matches” + links + (optional) one-paragraph brief.
+      </p>
+      <aside class="notes">
+        Tie to workflow: source → triage → diligence → memo drafting.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Implementation checklist</h2>
+      <div class="grid2">
+        <div class="card">
+          <div class="kpi">1</div>
+          <p><b>Decide scope</b><br><span class="muted">What sources + what questions?</span></p>
+        </div>
+        <div class="card">
+          <div class="kpi">2</div>
+          <p><b>Ingest & chunk</b><br><span class="muted">Metadata is quality.</span></p>
+        </div>
+        <div class="card">
+          <div class="kpi">3</div>
+          <p><b>Index + hybrid</b><br><span class="muted">Vector + lexical.</span></p>
+        </div>
+        <div class="card">
+          <div class="kpi">4</div>
+          <p><b>Evaluate</b><br><span class="muted">Offline + online loops.</span></p>
+        </div>
+      </div>
+      <aside class="notes">
+        Wrap: “Start small, measure, iterate.”
+      </aside>
+    </section>
+
+    <section>
+      <h2>Fin</h2>
+      <p class="muted">Questions / live demo</p>
+      <ul>
+        <li>Pick 1–2 real queries</li>
+        <li>Show results + “why these matched”</li>
+        <li>Change chunking/reranker and show improvement</li>
+      </ul>
+      <p class="muted" style="margin-top:1rem">Tip: press <b>S</b> for speaker notes.</p>
+      <aside class="notes">
+        If demo: prepare a tiny corpus + 10 queries, have failures ready (people trust honesty).
+      </aside>
+    </section>
+
+  </div>
+</div>
+
+<div class="footer">Semantic Search deck • Reveal.js</div>
+
+<script src="https://unpkg.com/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://unpkg.com/reveal.js@5.2.1/plugin/notes/notes.js"></script>
+<script src="https://unpkg.com/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+<script src="https://unpkg.com/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    controls: true,
+    progress: true,
+    transition: "slide",
+    plugins: [ RevealNotes, RevealMarkdown, RevealHighlight ]
+  });
+</script>
+</body>
+</html>
