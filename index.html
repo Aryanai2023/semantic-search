@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Research Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #queryInput {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #queryInput:focus {
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .settings {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .setting-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="number"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .examples {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .example-btn {
+            padding: 8px 15px;
+            font-size: 14px;
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .answer-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .answer-box {
+            background: #f9fafb;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            line-height: 1.8;
+            margin-bottom: 30px;
+        }
+
+        .sources-section h3 {
+            color: #333;
+            margin: 30px 0 20px;
+            font-size: 1.5rem;
+        }
+
+        .source-card {
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .source-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .source-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .source-url {
+            color: #667eea;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .source-url:hover {
+            text-decoration: underline;
+        }
+
+        .source-snippet {
+            color: #666;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        .follow-up-section {
+            margin-top: 30px;
+        }
+
+        .follow-up-card {
+            background: #eff6ff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid #3b82f6;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .follow-up-card:hover {
+            background: #dbeafe;
+            transform: translateX(5px);
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .export-btn {
+            padding: 10px 20px;
+            background: #10b981;
+            font-size: 14px;
+        }
+
+        .error {
+            display: none;
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 20px;
+            border-radius: 8px;
+            color: #991b1b;
+            margin: 20px 0;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .settings {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔬 AI Research Assistant</h1>
+            <p class="subtitle">Ask any question and get comprehensive answers with cited sources</p>
+        </header>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="queryInput" 
+                    placeholder="Ask a question... (e.g., What are the latest AI breakthroughs?)"
+                    autocomplete="off"
+                >
+                <button id="searchBtn" onclick="conductResearch()">🔍 Research</button>
+            </div>
+
+            <div class="settings">
+                <div class="setting-group">
+                    <label for="numSources">Number of Sources</label>
+                    <input type="number" id="numSources" min="3" max="10" value="5">
+                </div>
+                <div class="setting-group">
+                    <label for="apiKey">Anthropic API Key (Optional)</label>
+                    <input type="password" id="apiKey" placeholder="sk-ant-...">
+                </div>
+            </div>
+
+            <div class="examples">
+                <strong>Try these:</strong>
+                <button class="example-btn" onclick="setQuery('Latest AI breakthroughs')">Latest AI breakthroughs</button>
+                <button class="example-btn" onclick="setQuery('Climate change solutions')">Climate change solutions</button>
+                <button class="example-btn" onclick="setQuery('Quantum computing applications')">Quantum computing</button>
+                <button class="example-btn" onclick="setQuery('Space exploration news')">Space exploration</button>
+            </div>
+        </div>
+
+        <div class="error" id="errorBox"></div>
+
+        <div class="loading" id="loadingBox">
+            <div class="spinner"></div>
+            <h3>🔬 Researching your question...</h3>
+            <p>Searching the web, fetching sources, and synthesizing answer...</p>
+        </div>
+
+        <div class="results" id="resultsBox">
+            <div class="export-buttons">
+                <button class="export-btn" onclick="exportMarkdown()">📥 Export Markdown</button>
+                <button class="export-btn" onclick="exportJSON()">📥 Export JSON</button>
+            </div>
+
+            <div class="answer-section">
+                <h2>📝 Answer</h2>
+                <div class="answer-box" id="answerBox"></div>
+            </div>
+
+            <div class="sources-section">
+                <h3>📚 Sources</h3>
+                <div id="sourcesBox"></div>
+            </div>
+
+            <div class="follow-up-section">
+                <h3>💡 Related Questions</h3>
+                <div id="followUpBox"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResult = null;
+
+        // Set query from example
+        function setQuery(query) {
+            document.getElementById('queryInput').value = query;
+        }
+
+        // Handle Enter key
+        document.getElementById('queryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                conductResearch();
+            }
+        });
+
+        // Main research function
+        async function conductResearch() {
+            const query = document.getElementById('queryInput').value.trim();
+            const numSources = parseInt(document.getElementById('numSources').value);
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            if (!query) {
+                showError('Please enter a question');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('errorBox').classList.remove('active');
+            document.getElementById('resultsBox').classList.remove('active');
+            document.getElementById('loadingBox').classList.add('active');
+            document.getElementById('searchBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/research', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        num_sources: numSources,
+                        api_key: apiKey || null
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Research failed');
+                }
+
+                currentResult = await response.json();
+                displayResults(currentResult);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.getElementById('loadingBox').classList.remove('active');
+                document.getElementById('searchBtn').disabled = false;
+            }
+        }
+
+        // Display results
+        function displayResults(result) {
+            // Answer
+            document.getElementById('answerBox').innerHTML = result.answer.replace(/\n/g, '<br>');
+
+            // Sources
+            const sourcesHtml = result.sources.map(source => `
+                <div class="source-card">
+                    <div>
+                        <span class="source-badge">[${source.index}]</span>
+                        <span class="source-title">${source.title}</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <a href="${source.url}" target="_blank" class="source-url">🔗 ${source.url}</a>
+                    </div>
+                    <div class="source-snippet">${source.snippet}</div>
+                </div>
+            `).join('');
+            document.getElementById('sourcesBox').innerHTML = sourcesHtml;
+
+            // Follow-up questions
+            const followUpHtml = result.follow_up_questions.map(q => `
+                <div class="follow-up-card" onclick="setQuery('${q.replace(/'/g, "\\'")}'); conductResearch();">
+                    ${q}
+                </div>
+            `).join('');
+            document.getElementById('followUpBox').innerHTML = followUpHtml;
+
+            // Show results
+            document.getElementById('resultsBox').classList.add('active');
+            document.getElementById('resultsBox').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Show error
+        function showError(message) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.textContent = '❌ ' + message;
+            errorBox.classList.add('active');
+        }
+
+        // Export functions
+        async function exportMarkdown() {
+            if (!currentResult) return;
+
+            try {
+                const response = await fetch('/api/export/markdown', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(currentResult)
+                });
+
+                const data = await response.json();
+                downloadFile(data.markdown, 'research.md', 'text/markdown');
+            } catch (error) {
+                showError('Export failed: ' + error.message);
+            }
+        }
+
+        function exportJSON() {
+            if (!currentResult) return;
+            const json = JSON.stringify(currentResult, null, 2);
+            downloadFile(json, 'research.json', 'application/json');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
